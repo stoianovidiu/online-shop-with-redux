@@ -1,0 +1,40 @@
+.Cart {
+  margin: 16px 0px 32px 32px;
+}
+
+h4 {
+  width: fit-content;
+  margin: 16px 32px 32px 32px;
+  border: 1px solid grey;
+  padding: 16px 32px 16px 32px;
+}
+
+.Cart table {
+  text-align: left;
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  border: 3px solid #ddd;
+  margin: 16px 0px 32px 32px;
+  width: 90%;
+}
+
+.Cart td,
+th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.Cart th {
+  background-color: #333399;
+  color: white;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+}
+
+.CartBtn {
+  border: none;
+  background-color: inherit;
+  cursor: pointer;
+  display: inline-block;
+}

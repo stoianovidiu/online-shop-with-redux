@@ -1,0 +1,8 @@
+.ActionDoneMessage {
+  text-align: center;
+}
+
+.ActionDoneMessage p {
+  margin: 16px;
+  text-align: center;
+}

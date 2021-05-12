@@ -1,0 +1,39 @@
+.Product {
+  display: inline-block;
+  margin: 16px 0px 32px 32px;
+  width: 90%;
+  height: 70%;
+  border: 1px solid grey;
+}
+
+.ProdList {
+  justify-content: space-between;
+  width: 65%;
+  float: left;
+}
+
+.ProdList p {
+  padding: 16px;
+}
+
+.Product img {
+  padding: 32px;
+  float: right;
+  width: 25%;
+}
+
+.Product span {
+  color: grey;
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+@media (max-width: 499px) {
+  .Product {
+    display: contents;
+  }
+
+  .Product img {
+    float: none;
+  }
+}
