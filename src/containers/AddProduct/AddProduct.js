@@ -1,4 +1,5 @@
 import React, { Fragment, useCallback, useEffect, useState } from "react";
+import { connect } from "react-redux";
 
 import classes from "./AddProduct.module.css";
 import Input from "../../components/UI/Input/Input";
@@ -9,6 +10,7 @@ import ActionDoneMessage from "../../components/ConfirmMessage/ActionDoneMessage
 import axios from "../../axios-instance";
 import { checkValidity } from "../../Utility/Utility";
 import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
+import * as actions from "../../store/actions/index";
 
 const AddProduct = (props) => {
   const [productToAdd, setProductToAdd] = useState({
@@ -30,45 +32,20 @@ const AddProduct = (props) => {
   });
 
   const [isFormValid, setIsFormValid] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDone, setIsDone] = useState(false);
-
-  const cancelButtonHandler = () => {
-    props.setWasAdded(false);
-    props.setIsAdding(false);
-  };
-
-  const cancelMessage = () => {
-    setIsDone(false);
-    props.setIsAdding(false);
-    props.setWasAdded(true);
-  };
 
   const actionDoneMessage = (
     <ActionDoneMessage
       message="Product was added to the list!"
-      clicked={cancelMessage}
+      clicked={props.onCancelMessage}
     />
   );
 
   const addButtonHandler = () => {
-    setIsLoading(true);
     const productToAddWithId = {
       ...productToAdd,
       id: props.products[props.products.length - 1].id + 1,
     };
-
-    axios
-      .post("/products", productToAddWithId)
-      .then((resp) => {
-        if (resp.status >= 200 && resp.status < 300) {
-          setIsLoading(false);
-          setIsDone(true);
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-      });
+    props.onAddProduct(productToAddWithId);
   };
 
   const editInputHandler = (event, field) => {
@@ -134,7 +111,7 @@ const AddProduct = (props) => {
           />
         );
       })}
-      <Button clicked={cancelButtonHandler}>CANCEL</Button>
+      <Button clicked={props.onAddCancel}>CANCEL</Button>
       <Button
         clicked={addButtonHandler}
         disabled={isFormValid && priceRules.valid ? false : true}
@@ -144,13 +121,13 @@ const AddProduct = (props) => {
     </Fragment>
   );
 
-  if (isLoading) {
+  if (props.isLoading) {
     form = <Spinner />;
   }
 
   return (
     <div className={classes.AddProduct}>
-      <Modal show={isDone} modalClosed={cancelMessage}>
+      <Modal show={props.isDone} modalClosed={props.onCancelMessage}>
         {actionDoneMessage}
       </Modal>
       {form}
@@ -158,4 +135,23 @@ const AddProduct = (props) => {
   );
 };
 
-export default withErrorHandler(AddProduct, axios);
+const mapStateToProps = (state) => {
+  return {
+    products: state.products.products,
+    isLoading: state.products.isLoading,
+    isDone: state.products.isDone,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onAddProduct: (productToAddWithId) =>
+      dispatch(actions.addProduct(productToAddWithId)),
+    onAddCancel: () => dispatch(actions.cancelAddHandler()),
+    onCancelMessage: () => dispatch(actions.productsCancelMessageHandler()),
+  };
+};
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withErrorHandler(AddProduct, axios));

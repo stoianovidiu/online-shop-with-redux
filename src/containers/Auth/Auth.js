@@ -1,13 +1,14 @@
 import React, { Fragment, useState } from "react";
+import { connect } from "react-redux";
 
 import Input from "../../components/UI/Input/Input";
 import Button from "../../components/UI/Button/Button";
 import Spinner from "../../components/UI/Spinner/Spinner";
 import { checkValidity } from "../../Utility/Utility";
 import classes from "./Auth.module.css";
-import { useHistory } from "react-router";
 import axios from "../../axios-instance";
 import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
+import * as actions from "../../store/actions/index";
 
 const Auth = (props) => {
   const [authForm, setAuthForm] = useState({
@@ -36,8 +37,6 @@ const Auth = (props) => {
     },
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-
   const formElementsArray = [];
   for (let key in authForm) {
     formElementsArray.push({
@@ -46,7 +45,6 @@ const Auth = (props) => {
     });
   }
 
-  const history = useHistory();
   const inputChangedHandler = (event, fieldName) => {
     const updatedFields = {
       ...authForm,
@@ -65,27 +63,8 @@ const Auth = (props) => {
 
   const loginHandler = (event) => {
     event.preventDefault();
-    setIsLoading(true);
-    axios
-      .post("/login", {
-        username: authForm.username.value,
-        password: authForm.password.value,
-      })
-      .then((resp) => {
-        if (resp.status >= 200 && resp.status < 300) {
-          setIsLoading(false);
-          props.setUser(resp.data.username);
-          props.setRoles(resp.data.roles);
-          props.setIsAuthenticated(true);
-          localStorage.setItem("username", resp.data.username);
-          localStorage.setItem("roles", JSON.stringify(resp.data.roles));
-          localStorage.setItem("isAuthenticated", JSON.stringify(true));
-          history.replace("/products");
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-      });
+
+    props.onAuth(authForm.username.value, authForm.password.value);
   };
 
   let form = formElementsArray.map((formElement) => {
@@ -106,7 +85,7 @@ const Auth = (props) => {
 
   return (
     <div className={classes.Auth}>
-      {isLoading ? (
+      {props.isLoading ? (
         <Spinner />
       ) : (
         <Fragment>
@@ -120,4 +99,22 @@ const Auth = (props) => {
   );
 };
 
-export default withErrorHandler(Auth, axios);
+const mapStateToProps = (state) => {
+  return {
+    isLoading: state.auth.isLoading,
+    error: state.auth.error,
+    isAuthenticated: state.auth.isAuthenticated,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onAuth: (formUser, formPassword) =>
+      dispatch(actions.auth(formUser, formPassword)),
+  };
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withErrorHandler(Auth, axios));

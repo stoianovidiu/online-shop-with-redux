@@ -1,4 +1,5 @@
 import React, { Fragment, useCallback, useEffect, useState } from "react";
+import { connect } from "react-redux";
 
 import Input from "../../components/UI/Input/Input";
 import Button from "../../components/UI/Button/Button";
@@ -9,6 +10,7 @@ import Modal from "../../components/UI/Modal/Modal";
 import ActionDoneMessage from "../../components/ConfirmMessage/ActionDoneMessage/ActionDoneMessage";
 import { checkValidity } from "../../Utility/Utility";
 import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
+import * as actions from "../../store/actions/index";
 
 const EditProduct = (props) => {
   const [editedProduct, setEditedProduct] = useState(props.product);
@@ -21,8 +23,6 @@ const EditProduct = (props) => {
     touched: false,
   });
   const [isFormValid, setIsFormValid] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDone, setIsDone] = useState(false);
 
   const editInputHandler = (event, field) => {
     let userInput = event.target.value;
@@ -60,29 +60,15 @@ const EditProduct = (props) => {
   }, [checkForm]);
 
   const cancelEditHandler = () => {
-    props.setIsEditing(false);
-    props.setWasEdited(false);
+    props.onCancelEditHandler();
   };
 
   const saveEditHandler = () => {
-    setIsLoading(true);
-    axios
-      .put(`/products/${props.currProd}`, editedProduct)
-      .then((resp) => {
-        if (resp.status >= 200 && resp.status < 300) {
-          setIsLoading(false);
-          props.setWasEdited(true);
-          setIsDone(true);
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-      });
+    props.onEditProd(props.currProdId, editedProduct);
   };
 
   const closeMessage = () => {
-    setIsDone(false);
-    props.setIsEditing(false);
+    props.onEditCloseMessage();
   };
 
   const elementsArray = [];
@@ -133,13 +119,13 @@ const EditProduct = (props) => {
       clicked={closeMessage}
     />
   );
-  if (isLoading) {
+  if (props.isLoading) {
     form = <Spinner />;
   }
 
   return (
     <div className={classes.EditProduct}>
-      <Modal show={isDone} modalClosed={closeMessage}>
+      <Modal show={props.isDone} modalClosed={closeMessage}>
         {confirmMessage}
       </Modal>
       {form}
@@ -147,4 +133,24 @@ const EditProduct = (props) => {
   );
 };
 
-export default withErrorHandler(EditProduct, axios);
+const mapStateToProps = (state) => {
+  return {
+    product: state.prod.product,
+    isLoading: state.prod.isLoading,
+    isDone: state.prod.isDone,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onEditProd: (currProdId, editedProd) =>
+      dispatch(actions.editProd(currProdId, editedProd)),
+    onCancelEditHandler: () => dispatch(actions.cancelEditHandler()),
+    onEditCloseMessage: () => dispatch(actions.cancelEditMessage()),
+  };
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withErrorHandler(EditProduct, axios));

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { useHistory } from "react-router";
+import { connect } from "react-redux";
 
 import Header from "../../components/Header/Header";
 import Spinner from "../../components/UI/Spinner/Spinner";
@@ -9,61 +10,29 @@ import ActionDoneMessage from "../../components/ConfirmMessage/ActionDoneMessage
 import classes from "./Cart.module.css";
 import axios from "../../axios-instance";
 import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
+import * as actions from "../../store/actions/index";
 
 const Cart = (props) => {
-  const [isConfirming, setIsConfirming] = useState(false);
-  const [isDone, setIsDone] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const history = useHistory();
 
   const productDeleteHandler = (product) => {
-    const cart = props.cart.slice();
-    const index = cart.indexOf(product);
-    cart.splice(index, 1);
-    props.setCart(cart);
-    setMessage("Product has been removed from the shopping cart.");
-    setIsDone(true);
+    props.onDeleteProduct(props.cart, product);
   };
 
   const checkoutButtonHandler = () => {
-    setIsLoading(true);
-    const orderedProd = props.cart.map((prod) => {
-      return {
-        productId: prod.id,
-        quantity: prod.quantity,
-      };
-    });
-
-    axios
-      .post("/orders", {
-        customer: props.user,
-        products: orderedProd,
-      })
-      .then((resp) => {
-        if (resp.status >= 200 && resp.status < 300) {
-          setIsLoading(false);
-          setIsConfirming(false);
-          setMessage("Order was created!");
-          setIsDone(true);
-          props.cart.length = 0;
-          localStorage.removeItem("cart");
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-      });
+    props.onCreateOrder(props.user, props.cart);
   };
 
-  const openMessageHandler = () => {
-    setIsConfirming(true);
+  const openMessage = () => {
+    props.onOpenMessage();
   };
 
-  const cancelMessageHandler = () => {
-    if (isConfirming) {
-      setIsConfirming(false);
-    } else if (isDone) {
-      setIsDone(false);
+  const cancelMessage = () => {
+    if (props.isConfirming && props.isDone) {
+      props.onCancelMessage();
+      history.replace("/products");
+    } else {
+      props.onCancelMessage();
     }
   };
 
@@ -73,21 +42,21 @@ const Cart = (props) => {
 
   let confirmMessage = null;
 
-  if (isConfirming) {
+  if (props.isConfirming && !props.isDone) {
     confirmMessage = (
       <ConfirmMessage
         cart={props.cart}
-        clicked1={cancelMessageHandler}
+        clicked1={cancelMessage}
         clicked2={checkoutButtonHandler}
       />
     );
-  } else if (isDone) {
+  } else if (props.isConfirming && props.isDone) {
     confirmMessage = (
-      <ActionDoneMessage message={message} clicked={cancelMessageHandler} />
+      <ActionDoneMessage message={props.message} clicked={cancelMessage} />
     );
   }
 
-  if (isLoading) {
+  if (props.isLoading) {
     confirmMessage = <Spinner />;
   }
 
@@ -112,16 +81,17 @@ const Cart = (props) => {
 
   return (
     <div className={classes.Cart}>
-      <Modal show={isConfirming || isDone} modalClosed={cancelMessageHandler}>
+      <Modal
+        show={props.isDone || props.isConfirming}
+        modalClosed={cancelMessage}
+      >
         {confirmMessage}
       </Modal>
       <Header
         title="Shopping Cart"
         paramsId={props.match.params}
         btn1={props.cart.length > 0 ? "CHECKOUT" : "GO TO PRODUCTS LIST"}
-        clicked1={
-          props.cart.length > 0 ? openMessageHandler : goToProductsBtnHandler
-        }
+        clicked1={props.cart.length > 0 ? openMessage : goToProductsBtnHandler}
       />
       {props.cart.length < 1 ? (
         <h4>
@@ -146,4 +116,27 @@ const Cart = (props) => {
   );
 };
 
-export default withErrorHandler(Cart, axios);
+export const mapStateToProps = (state) => {
+  return {
+    isLoading: state.cart.isLoading,
+    isConfirming: state.cart.isConfirming,
+    isDone: state.cart.isDone,
+    message: state.cart.message,
+    cart: state.prod.cart,
+    user: state.auth.user,
+  };
+};
+
+export const mapDispatchToProps = (dispatch) => {
+  return {
+    onCreateOrder: (user, cart) => dispatch(actions.createOrder(user, cart)),
+    onDeleteProduct: (cart, product) =>
+      dispatch(actions.deleteCartProduct(cart, product)),
+    onOpenMessage: () => dispatch(actions.orderOpenMessage()),
+    onCancelMessage: () => dispatch(actions.orderCancelMessageHandler()),
+  };
+};
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withErrorHandler(Cart, axios));

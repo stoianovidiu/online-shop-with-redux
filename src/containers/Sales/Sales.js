@@ -1,29 +1,18 @@
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useEffect } from "react";
+import { connect } from "react-redux";
 
 import Header from "../../components/Header/Header";
 import Spinner from "../../components/UI/Spinner/Spinner";
 import classes from "./Sales.module.css";
 import axios from "../../axios-instance";
 import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
+import * as actions from "../../store/actions/index";
 
 const Sales = (props) => {
-  const [sales, setSales] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
+  const { onFetchSales } = props;
   useEffect(() => {
-    setIsLoading(true);
-    axios
-      .get("/sales")
-      .then((resp) => {
-        if (resp.status >= 200 && resp.status < 300) {
-          setSales(resp.data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false);
-      });
-  }, []);
+    onFetchSales();
+  }, [onFetchSales]);
 
   let listProducts = (
     <Fragment>
@@ -36,7 +25,7 @@ const Sales = (props) => {
           </tr>
         </thead>
         <tbody>
-          {sales.map((item, index) => {
+          {props.sales.map((item, index) => {
             return (
               <tr key={index}>
                 <td>{item.category}</td>
@@ -49,11 +38,26 @@ const Sales = (props) => {
     </Fragment>
   );
 
-  if (isLoading) {
+  if (props.isLoading) {
     listProducts = <Spinner />;
   }
 
   return <div className={classes.Sales}>{listProducts}</div>;
 };
 
-export default withErrorHandler(Sales, axios);
+const mapStateToProps = (state) => {
+  return {
+    sales: state.sales.sales,
+    isLoading: state.sales.isLoading,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onFetchSales: () => dispatch(actions.fetchSales()),
+  };
+};
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withErrorHandler(Sales, axios));

@@ -1,11 +1,13 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Route, Switch, withRouter, Redirect } from "react-router-dom";
+import { connect } from "react-redux";
 
 import "./App.css";
 import Logout from "./containers/Auth/Logout/Logout";
 import Layout from "./hoc/Layout/Layout";
 import Spinner from "./components/UI/Spinner/Spinner";
 import PageNotFound from "./components/UI/PageNotFound/PageNotFound";
+import * as actions from "./store/actions/index";
 
 const Auth = React.lazy(() => import("./containers/Auth/Auth"));
 const Products = React.lazy(() => import("./containers/Products/Products"));
@@ -14,29 +16,15 @@ const Cart = React.lazy(() => import("./containers/Cart/Cart"));
 const Sales = React.lazy(() => import("./containers/Sales/Sales"));
 
 const App = (props) => {
-  const [cart, setCart] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState();
-
   const parsedAuth = JSON.parse(localStorage.getItem("isAuthenticated"));
+
+  const { onLoggedInfo } = props;
 
   useEffect(() => {
     if (parsedAuth) {
-      setUser(localStorage.getItem("username"));
-      setRoles(JSON.parse(localStorage.getItem("roles")));
-      setIsAuthenticated(true);
+      onLoggedInfo();
     }
-  }, [parsedAuth]);
-
-  useEffect(() => {
-    const parsedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(parsedCart);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+  }, [parsedAuth, onLoggedInfo]);
 
   let routes = null;
 
@@ -47,16 +35,14 @@ const App = (props) => {
           path="/products"
           exact
           render={(props) => {
-            return <Products {...props} roles={roles} />;
+            return <Products {...props} />;
           }}
         />
 
         <Route
           path="/products/:id"
           render={(props) => {
-            return (
-              <Product {...props} cart={cart} setCart={setCart} roles={roles} />
-            );
+            return <Product {...props} />;
           }}
         />
 
@@ -70,20 +56,20 @@ const App = (props) => {
         <Route
           path="/orders"
           render={(props) => {
-            return (
-              <Cart {...props} cart={cart} setCart={setCart} user={user} />
-            );
+            return <Cart {...props} />;
           }}
         />
 
         <Route
           path="/logout"
           render={() => {
-            return (
-              <Logout setIsAuthenticated={setIsAuthenticated} cart={cart} />
-            );
+            return <Logout />;
           }}
         />
+
+        <Route path="/auth" exact>
+          <Redirect to="/products" />
+        </Route>
 
         <Route path="/" exact>
           <Redirect to="/products" />
@@ -97,18 +83,7 @@ const App = (props) => {
   } else {
     routes = (
       <Switch>
-        <Route
-          path="/auth"
-          render={(props) => (
-            <Auth
-              {...props}
-              authenticated={isAuthenticated}
-              setIsAuthenticated={setIsAuthenticated}
-              setRoles={setRoles}
-              setUser={setUser}
-            />
-          )}
-        />
+        <Route path="/auth" render={(props) => <Auth {...props} />} />
         <Route path="/">
           <Redirect to="/auth" />
         </Route>
@@ -118,11 +93,24 @@ const App = (props) => {
 
   return (
     <div>
-      <Layout isAuthenticated={isAuthenticated} roles={roles}>
+      <Layout roles={props.roles}>
         <Suspense fallback={<Spinner />}>{routes}</Suspense>
       </Layout>
     </div>
   );
 };
 
-export default withRouter(App);
+const mapStateToProps = (state) => {
+  return {
+    isAuthenticated: state.auth.isAuthenticated,
+    cart: state.auth.cart,
+    roles: state.auth.roles,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onLoggedInfo: () => dispatch(actions.authInfo()),
+  };
+};
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(App));

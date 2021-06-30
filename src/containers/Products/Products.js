@@ -1,36 +1,31 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useEffect, Fragment } from "react";
 import { useHistory } from "react-router";
+import { connect } from "react-redux";
 
 import Header from "../../components/Header/Header";
 import Spinner from "../../components/UI/Spinner/Spinner";
 import classes from "./Products.module.css";
 import axios from "../../axios-instance";
 import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
+import * as actions from "../../store/actions/index";
 
 const AddProduct = React.lazy(() => import("../AddProduct/AddProduct"));
 
 const Products = (props) => {
-  const [products, setProducts] = useState([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [wasAdded, setWasAdded] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { onFetchProducts } = props;
+  const { wasAdded } = props;
+  const { onAddCancel } = props;
+  const { wasEdited } = props;
 
   useEffect(() => {
-    if (wasAdded) {
-      setIsLoading(true);
-      axios
-        .get("/products")
-        .then((resp) => {
-          if (resp.status >= 200 && resp.status < 300) {
-            setIsLoading(false);
-            setProducts(resp.data);
-          }
-        })
-        .catch((err) => {
-          setIsLoading(false);
-        });
+    if (wasAdded || wasEdited) {
+      onFetchProducts();
     }
-  }, [wasAdded]);
+  }, [wasAdded, wasEdited, onFetchProducts]);
+
+  useEffect(() => {
+    onAddCancel();
+  }, [onAddCancel]);
 
   const history = useHistory();
 
@@ -38,12 +33,7 @@ const Products = (props) => {
     history.push(`/products/${prod.id}`);
   };
 
-  const productAddHandler = () => {
-    setWasAdded(false);
-    setIsAdding(true);
-  };
-
-  const listProducts = products.map((prod) => {
+  const listProducts = props.products.map((prod) => {
     return (
       <tr key={prod.id}>
         <td>{prod.category}</td>
@@ -68,7 +58,7 @@ const Products = (props) => {
         paramsId={props.match.params}
         roles={props.roles}
         btn1="ADD"
-        clicked1={productAddHandler}
+        clicked1={props.addButtonHandler}
       />
       <table>
         <thead>
@@ -84,21 +74,37 @@ const Products = (props) => {
     </Fragment>
   );
 
-  if (isLoading && !isAdding) {
+  if (props.isLoading && props.isAdding) {
     modeDisplay = <Spinner />;
   }
 
-  if (isAdding) {
-    modeDisplay = (
-      <AddProduct
-        setIsAdding={setIsAdding}
-        setWasAdded={setWasAdded}
-        products={products}
-      />
-    );
+  if (props.isAdding) {
+    modeDisplay = <AddProduct />;
   }
 
   return <div className={classes.Products}>{modeDisplay}</div>;
 };
 
-export default withErrorHandler(Products, axios);
+const mapStateToProps = (state) => {
+  return {
+    products: state.products.products,
+    isLoading: state.products.isLoading,
+    isAdding: state.products.isAdding,
+    wasAdded: state.products.wasAdded,
+    wasEdited: state.prod.wasEdited,
+    roles: state.auth.roles,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onFetchProducts: () => dispatch(actions.fetchProducts()),
+    addButtonHandler: () => dispatch(actions.addProductHandler()),
+    onAddCancel: () => dispatch(actions.cancelAddHandler()),
+  };
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withErrorHandler(Products, axios));

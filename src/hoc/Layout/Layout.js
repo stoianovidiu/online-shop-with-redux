@@ -1,5 +1,5 @@
 import React, { Fragment, useState } from "react";
-
+import { connect } from "react-redux";
 import classes from "./Layout.module.css";
 import Toolbar from "../../components/Toolbar/Toolbar";
 import SideDrawer from "../../components/SideDrawer/SideDrawer";
@@ -35,4 +35,10 @@ const Layout = (props) => {
   );
 };
 
-export default Layout;
+const mapStateToProps = (state) => {
+  return {
+    isAuthenticated: state.auth.isAuthenticated,
+  };
+};
+
+export default connect(mapStateToProps, null)(Layout);
